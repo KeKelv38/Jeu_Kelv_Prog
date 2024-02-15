@@ -2,59 +2,84 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class movement_character : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed;
-    public float jumpforce;
-    public bool isJumping = false;
-    public bool isGrounded;
 
-    public Transform groundCheckLeft;
-    public Transform groundCheckRight;
-    public Rigidbody2D rb;
-    private Vector3 velocity = Vector3.zero;
+    private float speed = 8f;
+    private float jumpingPower = 16f;
+    private bool isFacingRight = true;
+    private float move;
+
+
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private LayerMask groundLayer2;
 
     public Animator animator;
     public SpriteRenderer spriteRenderer;
 
-    void FixedUpdate()
+    // Update is called once per frame
+    void Update()
     {
-        isGrounded = Physics2D.OverlapArea(groundCheckLeft.position, groundCheckRight.position);
-        float horizontalMovement = Input.GetAxis("Horizontal") * moveSpeed * Time.deltaTime;
 
-        MovePlayer(horizontalMovement);
+        move = Input.GetAxis("Horizontal");
 
-        Flip(rb.velocity.x);
+        rb.velocity = new Vector2(speed * move, rb.velocity.y);
+
+        if (Input.GetKey(KeyCode.LeftArrow) && IsGrounded2())
+        {
+            rb.velocity = new Vector2((speed / 2) * move, rb.velocity.y);
+        }
+
+        if (Input.GetKey(KeyCode.RightArrow) && IsGrounded2())
+        {
+            rb.velocity = new Vector2((speed / 2) * move, rb.velocity.y);
+        }
+
+        if (Input.GetButtonDown("Jump") && IsGrounded())
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
+        }
+
+        if (Input.GetButtonUp("Jump") && rb.velocity.y > 0f)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+        }
+
+        Flip();
+    }
+
+    private void FixedUpdate()
+    {
 
         float characterVelocity = Mathf.Abs(rb.velocity.x);
-        animator.SetFloat("Speed", characterVelocity);    
+        animator.SetFloat("Speed", characterVelocity);
     }
 
-    private void Update()
+    private void FixedUptade()
     {
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            isJumping = true;
-        }
+        rb.velocity = new Vector2(move * speed, rb.velocity.y);
     }
 
-    void MovePlayer(float _horizontalMovement)
+    private bool IsGrounded()
     {
-        Vector3 targetVelocity = new Vector2(_horizontalMovement, rb.velocity.y);
-        rb.velocity = Vector3.SmoothDamp(rb.velocity, targetVelocity, ref velocity, .05f);
-
-        if(isJumping == true)
-        {
-            rb.AddForce(new Vector2(0f, jumpforce));
-            isJumping = false;
-        }
+        return Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer);
     }
 
-    void Flip(float _velocity){
-        if (_velocity > 0.1f){
-            spriteRenderer.flipX = false;
-        }else if(_velocity < -0.1f){
-            spriteRenderer.flipX = true;
+    private bool IsGrounded2()
+    {
+        return Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer2);
+    }
+
+    private void Flip()
+    {
+        if (isFacingRight && move < 0f || !isFacingRight && move > 0f)
+        {
+            isFacingRight = !isFacingRight;
+            Vector3 localScale = transform.localScale;
+            localScale.x *= -1f;
+            transform.localScale = localScale;
         }
     }
 }
